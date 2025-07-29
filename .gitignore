@@ -1,0 +1,61 @@
+# Byte-compiled / optimized / DLL files
+__pycache__/
+*.pyc
+*.pyo
+*.pyd
+
+# C extensions
+*.so
+
+# Distribution / packaging
+.Python
+build/
+develop-eggs/
+dist/
+downloads/
+eggs/
+.eggs/
+lib/
+lib64/
+parts/
+sdist/
+var/
+wheels/
+*.egg-info/
+*.egg
+
+# Project-specific output files (as per README.md)
+# 忽略所有生成的结果，包括日志、模型和可视化图表
+results/
+*.log
+
+# Caches from linters, type checkers, and testing tools
+.mypy_cache/
+.pytest_cache/
+.ruff_cache/
+
+# Jupyter Notebook checkpoints
+.ipynb_checkpoints/
+
+# Conda and virtual environments
+env/
+venv/
+.env
+.venv
+.env.*
+
+# IDE and editor configuration files
+.idea/
+.vscode/
+*.swp
+
+# OS-generated files
+.DS_Store
+.DS_Store?
+
+# Claude-specific files (as per CLAUDE.md)
+.claude/
+tasks/
+CLAUDE.md
+
+/useless/
