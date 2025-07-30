@@ -102,22 +102,28 @@ class AlphaGCNEvaluator:
     def load_data(self) -> None:
         """加载和预处理数据"""
         self.logger.info("开始加载数据...")
-        
+
         # 加载训练数据 (IS)
         train_file = self.config['data']['train_file']
+        if not os.path.exists(train_file):
+            self.logger.error(f"训练文件不存在: {train_file}")
+            raise FileNotFoundError(f"训练文件不存在: {train_file}")
         self.logger.info(f"加载训练数据: {train_file}")
         self.train_data = self.csv_parser.parse_dataset(train_file)
         self.logger.info(f"训练数据加载完成: {len(self.train_data)} 个样本")
-        
+
         # 加载测试数据 (OS)
         test_file = self.config['data']['test_file']
+        if not os.path.exists(test_file):
+            self.logger.error(f"测试文件不存在: {test_file}")
+            raise FileNotFoundError(f"测试文件不存在: {test_file}")
         self.logger.info(f"加载测试数据: {test_file}")
         self.test_data = self.csv_parser.parse_dataset(test_file)
         self.logger.info(f"测试数据加载完成: {len(self.test_data)} 个样本")
-        
+
         # 数据验证
         self._validate_data()
-        
+
         # 数据清洗
         self.train_data = self.csv_parser.clean_data(self.train_data)
         self.test_data = self.csv_parser.clean_data(self.test_data)
