@@ -31,8 +31,7 @@ from sklearn.metrics import mean_squared_error, mean_absolute_error, r2_score
 from data.csv_parser import CSVDataParser
 from data.dataset import AlphaDataset
 from parser.expression_parser import AlphaExpressionParser
-from model.graph_builder import GraphBuilder
-from model.gcn_model import AlphaGCN
+from model import GraphBuilder, create_alpha_gcn_model
 from model.trainer import AlphaGCNTrainer
 # from utils.visualization import Visualizer
 # from utils.metrics import MetricsCalculator
@@ -228,22 +227,22 @@ class AlphaGCNEvaluator:
         self.logger.info("初始化模型...")
         
         # 获取特征维度
-        sample_graph = self.train_dataset[0]
-        input_dim = sample_graph.x.shape[1]
-        
-        # 获取实际的图特征维度
-        actual_graph_feature_dim = sample_graph.graph_features.shape[0] if hasattr(sample_graph, 'graph_features') else 7
+        # 从样本图中动态获取维度，比从GraphBuilder中获取更准确
+        sample_graph = self.train_dataset[0] 
+        feature_dims = {
+            'node_feature_dim': sample_graph.x.shape[1],
+            'edge_feature_dim': sample_graph.edge_attr.shape[1] if hasattr(sample_graph, 'edge_attr') and sample_graph.edge_attr is not None else 2,
+            'graph_feature_dim': sample_graph.graph_features.shape[0] if hasattr(sample_graph, 'graph_features') and hasattr(sample_graph.graph_features, 'shape') else 7
+        }
         
         # 创建模型
         model_config = self.config['model']
         
-        self.model = AlphaGCN(
-            node_feature_dim=input_dim,
-            edge_feature_dim=2,
-            graph_feature_dim=actual_graph_feature_dim,
-            hidden_dim=model_config.get('hidden_dim', 128),
-            num_layers=model_config.get('num_layers', 3),
-            dropout=model_config.get('dropout', 0.2)
+        # 使用在 gcn_model.py 中定义的工厂函数来创建模型
+        # 这能确保模型创建逻辑的统一，并方便未来扩展（例如，支持集成模型或不同类型的GCN）
+        self.model = create_alpha_gcn_model(
+            feature_dims=feature_dims,
+            config=model_config
         ).to(self.device)
         
         # 模型信息
@@ -251,7 +250,7 @@ class AlphaGCNEvaluator:
         trainable_params = sum(p.numel() for p in self.model.parameters() if p.requires_grad)
         
         self.logger.info(f"模型初始化完成:")
-        self.logger.info(f"  输入维度: {input_dim}")
+        self.logger.info(f"  节点特征维度: {feature_dims['node_feature_dim']}")
         self.logger.info(f"  隐藏维度: {model_config.get('hidden_dim', 128)}")
         self.logger.info(f"  网络层数: {model_config.get('num_layers', 3)}")
         self.logger.info(f"  总参数量: {total_params:,}")

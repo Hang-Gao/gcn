@@ -232,12 +232,13 @@ class GraphBuilder:
             PyTorch Geometric Data对象
         """
         # 1. 收集所有节点（深度优先遍历）
-        node_list = self._collect_nodes(ast.root)
+        # 修改：收集节点的同时记录深度
+        node_list_with_depth = self._collect_nodes_with_depth(ast.root)
+        node_list = [item[0] for item in node_list_with_depth]
         
         # 2. 编码节点特征
         node_features = []
-        for i, node in enumerate(node_list):
-            depth = self._calculate_node_depth(node, ast.root)
+        for i, (node, depth) in enumerate(node_list_with_depth):
             position = i  # 简单使用遍历顺序作为位置
             features = self.node_encoder.encode_node(node, depth, position, ast.variable_mapping)
             node_features.append(features)
@@ -268,50 +269,25 @@ class GraphBuilder:
         
         return data
     
-    def _collect_nodes(self, root: ASTNode) -> List[ASTNode]:
+    def _collect_nodes_with_depth(self, root: ASTNode) -> List[Tuple[ASTNode, int]]:
         """
-        深度优先收集所有节点
+        深度优先收集所有节点及其深度
         
         Args:
             root: 根节点
             
         Returns:
-            节点列表
+            (节点, 深度)元组的列表
         """
         nodes = []
         
-        def dfs(node):
-            nodes.append(node)
+        def dfs(node, depth):
+            nodes.append((node, depth))
             for child in node.children:
-                dfs(child)
+                dfs(child, depth + 1)
         
-        dfs(root)
+        dfs(root, 0)
         return nodes
-    
-    def _calculate_node_depth(self, target_node: ASTNode, root: ASTNode) -> int:
-        """
-        计算节点在树中的深度
-        
-        Args:
-            target_node: 目标节点
-            root: 根节点
-            
-        Returns:
-            深度值
-        """
-        def find_depth(node, current_depth=0):
-            if node is target_node:
-                return current_depth
-            
-            for child in node.children:
-                result = find_depth(child, current_depth + 1)
-                if result is not None:
-                    return result
-            
-            return None
-        
-        depth = find_depth(root)
-        return depth if depth is not None else 0
     
     def _extract_graph_features(self, ast: ExpressionAST, num_nodes: int) -> torch.Tensor:
         """

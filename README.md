@@ -67,7 +67,7 @@ python main.py --epochs 50 --batch-size 32 --hidden-dim 128
         'learning_rate': 0.001,                 # 学习率
         'weight_decay': 1e-5,                   # 权重衰减
         'scheduler': 'ReduceLROnPlateau',       # 学习率调度器
-        'val_ratio': 0.2                        # 验证集比例（从训练集中分出）
+        'val_ratio': 0.1                        # 验证集比例（从训练集中分出）
     },
     'output': {
         'results_dir': 'results',               # 结果输出目录
