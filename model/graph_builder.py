@@ -30,7 +30,15 @@ class NodeFeatureEncoder:
         self.node_type_to_idx = {nt: i for i, nt in enumerate(self.node_types)}
         
         # 特征名称映射（动态变量x1,x2,x3可以映射到这些特征）
-        self.feature_names = ['Ret', 'open', 'high', 'low', 'close', 'vol', 'oi']
+        # 包含TCFBaseClean (7个) + TCFBidAskPrice (12个) = 总共19个特征
+        self.feature_names = [
+            # TCFBaseClean 特征 (7个)
+            'Ret', 'open', 'high', 'low', 'close', 'vol', 'oi',
+            # TCFBidAskPrice 特征 (12个)
+            'mean_a_minus_b', 'spread_indicator', 'vol_weighted_spread', 'vwap',
+            'price_volatility', 'spread_volatility', 'ask_volatility', 'bid_volatility',
+            'ask_delta_vol', 'bid_delta_vol', 'delta_vol_diff', 'total_volume'
+        ]
         self.feature_to_idx = {fname: i for i, fname in enumerate(self.feature_names)}
         
         # 特征维度计算

@@ -1,9 +1,9 @@
 #!/usr/bin/env python3
 """
 数据集分割程序
-将alpha_perf_OS.csv中的539个样本随机分割为：
-- 500个样本的训练集 (alpha_train_500.csv)
-- 39个样本的测试集 (alpha_test_39.csv)
+将alpha_perf_OS.csv按照90%-10%比例随机分割为：
+- 90%的样本作为训练集 (alpha_perf_IS.csv)
+- 10%的样本作为测试集 (alpha_perf_OS_test.csv)
 """
 
 import pandas as pd
@@ -11,13 +11,13 @@ import numpy as np
 import random
 from pathlib import Path
 
-def split_dataset(input_file='alpha_perf_OS.csv', train_size=500, random_seed=42):
+def split_dataset(input_file='alpha_perf_OS.csv', train_ratio=0.9, random_seed=42):
     """
     分割数据集
     
     Args:
         input_file: 输入CSV文件路径
-        train_size: 训练集样本数量
+        train_ratio: 训练集比例 (默认0.9，即90%)
         random_seed: 随机种子，确保结果可重现
     """
     print(f"开始读取数据文件: {input_file}")
@@ -29,13 +29,14 @@ def split_dataset(input_file='alpha_perf_OS.csv', train_size=500, random_seed=42
     # 读取数据
     df = pd.read_csv(input_file)
     total_samples = len(df)
+    train_size = int(total_samples * train_ratio)
     test_size = total_samples - train_size
     
     print(f"原始数据集: {total_samples} 个样本")
-    print(f"计划分割: 训练集 {train_size} 个，测试集 {test_size} 个")
+    print(f"计划分割: 训练集 {train_size} 个 ({train_ratio*100:.1f}%)，测试集 {test_size} 个 ({(1-train_ratio)*100:.1f}%)")
     
     if train_size >= total_samples:
-        raise ValueError(f"训练集大小 ({train_size}) 不能大于等于总样本数 ({total_samples})")
+        raise ValueError(f"训练集比例过大，导致训练集大小 ({train_size}) 大于等于总样本数 ({total_samples})")
     
     # 设置随机种子
     np.random.seed(random_seed)
@@ -53,9 +54,9 @@ def split_dataset(input_file='alpha_perf_OS.csv', train_size=500, random_seed=42
     train_df = df.iloc[train_indices].copy()
     test_df = df.iloc[test_indices].copy()
     
-    # 保存分割后的数据
-    train_file = 'alpha_train_500.csv'
-    test_file = 'alpha_test_39.csv'
+    # 保存分割后的数据（创建新的文件，不覆盖原有数据集）
+    train_file = 'alpha_train_90pct.csv'  # 90%训练集
+    test_file = 'alpha_test_10pct.csv'    # 10%测试集
     
     train_df.to_csv(train_file, index=False)
     test_df.to_csv(test_file, index=False)

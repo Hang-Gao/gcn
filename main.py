@@ -459,8 +459,8 @@ def create_default_config() -> Dict[str, Any]:
     """创建默认配置"""
     return {
         'data': {
-            'train_file': 'alpha_OS_train_400.csv',
-            'test_file': 'alpha_OS_test_139.csv'
+            'train_file': 'alpha_train_90pct.csv',
+            'test_file': 'alpha_test_10pct.csv'
         },
         'model': {
             'hidden_dim': 128,
@@ -487,8 +487,8 @@ def main():
     """主函数"""
     parser = argparse.ArgumentParser(description='Alpha表达式GCN评估器')
     parser.add_argument('--config', type=str, default=None, help='配置文件路径')
-    parser.add_argument('--train-file', type=str, default='alpha_OS_train_400.csv', help='训练数据文件')
-    parser.add_argument('--test-file', type=str, default='alpha_OS_test_139.csv', help='测试数据文件')
+    parser.add_argument('--train-file', type=str, default='alpha_train_90pct.csv', help='训练数据文件')
+    parser.add_argument('--test-file', type=str, default='alpha_test_10pct.csv', help='测试数据文件')
     parser.add_argument('--epochs', type=int, default=100, help='训练轮数')
     parser.add_argument('--batch-size', type=int, default=32, help='批次大小')
     parser.add_argument('--hidden-dim', type=int, default=128, help='隐藏层维度')

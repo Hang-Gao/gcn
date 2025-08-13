@@ -11,13 +11,16 @@ class CSVDataParser:
     """
     CSV数据解析器，专门处理alpha表达式数据格式
     
-    CSV格式：<name>::<表达式;num 数据编号映射>::<其他参数>
-    特征编号映射：1→Ret, 2→open, 3→high, 4→low, 5→close, 6→vol, 7→oi
+    CSV格式：<name>::<表达式;num 数据类型1 编号1 数据类型2 编号2 ...>::<其他参数>
+    特征编号映射：
+    TCFBaseClean (1-7): 1→Ret, 2→open, 3→high, 4→low, 5→close, 6→vol, 7→oi
+    TCFBidAskPrice (1-12): 1→mean_a_minus_b, 2→spread_indicator, ..., 12→total_volume
     """
     
     def __init__(self):
         # 特征编号到名称的映射
-        self.feature_mapping = {
+        # 每种数据类型都有自己的编号体系
+        self.tcf_base_clean_mapping = {
             1: "Ret",     # 收益率
             2: "open",    # 开盘价  
             3: "high",    # 最高价
@@ -25,6 +28,21 @@ class CSVDataParser:
             5: "close",   # 收盘价
             6: "vol",     # 成交量
             7: "oi"       # 持仓量
+        }
+        
+        self.tcf_bid_ask_price_mapping = {
+            1: "mean_a_minus_b",           # mean(a-b)
+            2: "spread_indicator",         # (2p-a-b)/(a-b), mean
+            3: "vol_weighted_spread",      # (2p-a-b)/(a-b) * vol, sum  
+            4: "vwap",                     # vwap (sum(p * vol)/sum(vol))
+            5: "price_volatility",         # p vola(mean(abs(mean(p) -p)))
+            6: "spread_volatility",        # (a-b) vola
+            7: "ask_volatility",           # a vola
+            8: "bid_volatility",           # b vola
+            9: "ask_delta_vol",            # delta(a) * va, sum
+            10: "bid_delta_vol",           # delta(b) * vb, sum
+            11: "delta_vol_diff",          # (delta(a)-delta(b)) * vol, sum
+            12: "total_volume"             # sum(vol)
         }
     
     def load_csv_data(self, file_path: str) -> pd.DataFrame:
@@ -133,20 +151,33 @@ class CSVDataParser:
         for i in range(num_variables):
             var_name = f"x{i+1}"
             
-            # 计算对应的数据ID位置：每个变量对应 (数据名称, 数据ID)
+            # 计算对应的数据类型和ID位置：每个变量对应 (数据名称, 数据ID)
             # 跳过num，然后每个变量对应2个元素：名称+ID
-            id_index = 1 + i * 2 + 1  # 跳过num和name，取id
+            name_index = 1 + i * 2      # 数据类型名称索引
+            id_index = 1 + i * 2 + 1    # 数据ID索引
             
-            if id_index < len(parts):
+            if name_index < len(parts) and id_index < len(parts):
                 try:
+                    data_type = parts[name_index]  # TCFBaseClean 或 TCFBidAskPrice
                     data_id = int(parts[id_index])
-                    if data_id in self.feature_mapping:
-                        feature_name = self.feature_mapping[data_id]
-                        variable_mapping[var_name] = feature_name
-                        logger.debug(f"变量映射: {var_name} -> {feature_name} (ID:{data_id})")
+                    
+                    # 根据数据类型选择相应的映射字典
+                    if data_type == "TCFBaseClean":
+                        mapping_dict = self.tcf_base_clean_mapping
+                    elif data_type == "TCFBidAskPrice":
+                        mapping_dict = self.tcf_bid_ask_price_mapping
                     else:
-                        logger.warning(f"未知的特征编号: {data_id} for 变量 {var_name}")
-                        variable_mapping[var_name] = f"unknown_{data_id}"
+                        logger.warning(f"未知的数据类型: {data_type} for 变量 {var_name}")
+                        variable_mapping[var_name] = f"unknown_{data_type}_{data_id}"
+                        continue
+                    
+                    if data_id in mapping_dict:
+                        feature_name = mapping_dict[data_id]
+                        variable_mapping[var_name] = feature_name
+                        logger.debug(f"变量映射: {var_name} -> {feature_name} ({data_type}:{data_id})")
+                    else:
+                        logger.warning(f"未知的特征编号: {data_id} for 数据类型 {data_type}, 变量 {var_name}")
+                        variable_mapping[var_name] = f"unknown_{data_type}_{data_id}"
                 except ValueError:
                     logger.warning(f"无法解析数据ID: {parts[id_index]} for 变量 {var_name}")
                     variable_mapping[var_name] = f"unknown_{parts[id_index]}"
@@ -327,6 +358,16 @@ class CSVDataParser:
                     data_point.get('expression_info') and
                     data_point['expression_info'].get('expression') and
                     data_point['expression_info'].get('variable_mapping')):
+                    
+                    # 检查变量映射中是否包含未知的数据类型（如TCFTopBook等）
+                    variable_mapping = data_point['expression_info']['variable_mapping']
+                    has_unknown_data_type = any(
+                        feature.startswith('unknown_') for feature in variable_mapping.values()
+                    )
+                    
+                    if has_unknown_data_type:
+                        logger.debug(f"过滤包含未知数据类型的表达式: {variable_mapping}")
+                        continue
                     
                     # 检查Sharpe值范围（基于文档中的范围0.0801-0.2104）
                     sharpe = data_point['sharpe']
